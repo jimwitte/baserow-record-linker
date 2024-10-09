@@ -1,0 +1,16 @@
+services:
+  app:
+    image: ghcr.io/jimwitte/baserow-record-linker:latest
+    volumes:
+      - ./app/config.yml:/app/config.yml
+    restart: never
+    environment:
+      - BASEROW_URL=${BASEROW_URL}
+      - BASEROW_API_TOKEN=${BASEROW_API_TOKEN}
+    networks:
+      - web
+networks:
+  web:
+    ipam:
+      config:
+        - subnet: 192.168.201.0/24
