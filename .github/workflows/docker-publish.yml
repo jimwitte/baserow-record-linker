@@ -1,0 +1,50 @@
+name: Build and Push Docker Image to GHCR
+
+on:
+  push:
+    branches:
+      - main
+    tags:         # Trigger workflow on tag creation
+      - 'v*'
+  workflow_dispatch: # Allows manual trigger from the GitHub UI
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Step 2: Set up Docker Buildx for multi-platform builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      # Step 3: Log in to GitHub Container Registry (GHCR)
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+
+      # Step 4: Set up tags for the Docker image
+      - name: Determine Docker tags
+        id: docker_meta
+        run: |
+          # Set the version tag based on Git tag or fallback to commit SHA
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "::set-output name=tag::${{ github.ref_name }}"
+          else
+            echo "::set-output name=tag::$(echo ${{ github.sha }} | cut -c1-7)"
+          fi
+          echo "::set-output name=latest_tag::latest"
+
+      # Step 5: Build and tag the Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}:${{ steps.docker_meta.outputs.tag }} \
+                       -t ghcr.io/${{ github.repository }}:${{ steps.docker_meta.outputs.latest_tag }} .
+
+      # Step 6: Push the Docker image to GHCR
+      - name: Push Docker image
+        run: |
+          docker push ghcr.io/${{ github.repository }}:${{ steps.docker_meta.outputs.tag }}
+          docker push ghcr.io/${{ github.repository }}:${{ steps.docker_meta.outputs.latest_tag }}
