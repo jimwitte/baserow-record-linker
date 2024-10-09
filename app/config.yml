@@ -1,0 +1,23 @@
+# Sample YAML configuration for record linkers
+
+# A list of record linkers, each with its own configuration.
+
+record_linker_configs:
+  - name: "Applicant to Interview Schedule Linker config"  # Name of the record linker config
+    source_table_id: 1159                       # Source table ID
+    target_table_id: 1155                       # Target table ID
+    source_table_match_field: "Applicant Email" # Field in the source table used for matching
+    target_table_match_field: "Email"           # Field in the target table used for matching
+    source_table_primary_key_field: "Interview" # Primary key field of the source table
+    target_table_primary_key_field: "Applicant" # Primary key field of the target table
+    source_table_reference_field: "Applicant"   # Field in the source table to store the reference
+
+# Another example config
+# - name: "Employee to Department Linker config" # Name of the record linker config
+#   source_table_id: 1200                        # Source table ID
+#   target_table_id: 1300                        # Target table ID
+#   source_table_match_field: "Employee ID"      # Field in the source table used for matching
+#   target_table_match_field: "Department ID"    # Field in the target table used for matching
+#   source_table_primary_key_field: "Employee"   # Primary key field of the source table
+#   target_table_primary_key_field: "Department" # Primary key field of the target table
+#   source_table_reference_field: "Department"   # Field in the source table to store the reference
