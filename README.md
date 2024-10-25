@@ -1,19 +1,39 @@
 # Record Linking App
 
-This project automates the linking of related records between source and target tables in Baserow using a custom configuration. The app loads the configuration from a YAML file (`config.yml`) and uses the Baserow API to link records based on specified match fields.
+This project automates the linking of related records between source and target tables in Baserow, based on a customizable configuration table. Configurations are loaded from a designated Baserow table specified in the `.env` file.
 
+## Use Case Example
+
+Imagine managing multiple datasets where certain records, like customer details, are shared across tables. This app allows you to link related customer records between a "Source" and "Target" table in Baserow by defining match criteria, such as email address or phone number. It saves time and ensures consistency by automatically identifying and linking related records across tables.
+Can be triggered manually or set up as a cron job.
 
 ## Features
 
 - Links related records between source and target tables in Baserow.
-- Supports multiple record linker configurations via `config.yml`.
-- Configurable using environment variables and YAML.
+- Configurable via environment variables.
 - Error handling and logging for tracking the linking process.
+- Simplified configuration management using a dedicated Baserow table.
 
-## Run via docker-compose
+## Run via Docker Compose
 
-1. clone this repo
-2. copy env-sample to .env, edit with your values
-3. modify config.yml to configure linking of related records
-4. docker compose up
+1. Clone this repository.
+2. Copy `env-sample` to `.env` and edit it with your values, ensuring you specify the table ID of the configuration table.
+3. Run `docker-compose up`.
 
+## Configuration Table Schema
+
+The configurations for linking records are stored in a Baserow table. Each row in this table defines a specific linking configuration.
+
+| Field Name                   | Field Type | Description                                      |
+|------------------------------|------------|--------------------------------------------------|
+| Link Config Name             | string     | Stores the name of the link configuration.       |
+| Source Table ID              | string     | Contains the ID of the source table.             |
+| Active                       | boolean    | Indicates if the configuration is active.        |
+| Target Table ID              | string     | Holds the ID of the target table.                |
+| Source Table Match Field     | string     | Specifies the matching field in the source table.|
+| Target Table Match Field     | string     | Specifies the matching field in the target table.|
+| Source Table Reference Field | string     | Identifies the reference field in the source table.|
+
+### Environment Variables
+- **CONFIG_TABLE_ID**: The ID of the Baserow table storing configuration data. This is defined in the `.env` file.
+  

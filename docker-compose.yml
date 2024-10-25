@@ -1,12 +1,13 @@
 services:
   app:
     image: ghcr.io/jimwitte/baserow-record-linker:latest
-    volumes:
-      - ./app/config.yml:/app/config.yml
-    restart: never
+    restart: no
+    env_file:
+      - .env
     environment:
-      - BASEROW_URL=${BASEROW_URL}
-      - BASEROW_API_TOKEN=${BASEROW_API_TOKEN}
+      - BASEROW_URL
+      - BASEROW_API_TOKEN
+      - CONFIG_TABLE_ID
     networks:
       - web
 networks:

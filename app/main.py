@@ -1,50 +1,71 @@
 import os
 import logging
 from dotenv import load_dotenv
-import yaml
 from baserowapi import Baserow, Filter
 
 # Set up logging
 logging.basicConfig(
-    level=logging.INFO,  # Set the log level
+    level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",  # Log format
 )
-logger = logging.getLogger(__name__)  # Create a logger object
-
-# Load configuration for record linkers
-def load_record_linkers():
-    config_file = "config.yml"
-    try:
-        with open(config_file, "r") as file:
-            logger.info(f"Loading configuration from {config_file}")
-            yaml_content = yaml.safe_load(file)
-    except FileNotFoundError:
-        logger.error(f"Configuration file {config_file} not found.")
-        raise
-    except yaml.YAMLError as e:
-        logger.error(f"Error parsing YAML file: {e}")
-        raise
-
-    # Extract the list of record linkers
-    record_linkers = yaml_content.get("record_linker_configs", [])
-    logger.info(f"Loaded {len(record_linkers)} record linkers from configuration.")
-
-    return record_linkers
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 def load_env_variables():
     load_dotenv()
     baserow_url = os.getenv("BASEROW_URL")
     baserow_api_token = os.getenv("BASEROW_API_TOKEN")
+    config_table_id = os.getenv("CONFIG_TABLE_ID")
 
     # Check if the environment variables were successfully loaded
-    if not baserow_url or not baserow_api_token:
-        logger.error("BASEROW_URL or BASEROW_API_TOKEN not set in .env file.")
-        raise ValueError("BASEROW_URL or BASEROW_API_TOKEN not set in .env file.")
+    if not baserow_url or not baserow_api_token or not config_table_id:
+        logger.error("Environment variables not set in .env file.")
+        raise ValueError("Environment variables not set in .env file.")
     else:
         logger.info("Environment variables loaded successfully.")
 
-    return baserow_url, baserow_api_token
+    return baserow_url, baserow_api_token, config_table_id
+
+
+# Get record link configurations from the config table
+def get_record_link_configs(baserow_client, config_table_id):
+    """
+    Fetches record link configurations from a specified Baserow table.
+
+    :param baserow_client: The Baserow client object.
+    :param config_table_id: The ID of the Baserow table containing the configurations.
+    :return: A list of record link configurations.
+    """
+    try:
+        # Retrieve the table instance
+        config_table = baserow_client.get_table(config_table_id)
+
+        # Define a filter to get only active configurations
+        active_filter = Filter("Active", 'True', "boolean")
+
+        # Fetch rows from the table based on the active filter
+        rows = config_table.get_rows(filters=[active_filter])
+
+        # Extract configurations from rows
+        record_link_configs = []
+        for row in rows:
+            config = {
+                "source_table_id": row["Source Table ID"],
+                "target_table_id": row["Target Table ID"],
+                "source_table_match_field": row["Source Table Match Field"],
+                "target_table_match_field": row["Target Table Match Field"],
+                "target_table_primary_key_field": get_primary_key_field(baserow_client, row["Target Table ID"]),
+                "source_table_reference_field": row["Source Table Reference Field"],
+            }
+            record_link_configs.append(config)
+
+        logger.info(f"Fetched {len(record_link_configs)} record link configurations from table {config_table_id}.")
+        return record_link_configs
+
+    except Exception as e:
+        logger.error(f"Failed to fetch record link configurations: {e}")
+        raise
+
 
 # Create an index from a Baserow table based on a specified field
 def create_index_from_table(baserow_client, table_id, field_name):
@@ -108,6 +129,36 @@ def create_index_from_table(baserow_client, table_id, field_name):
     logger.info(f"Index creation completed for table ID: {table_id}")
     return index
 
+
+# Get the primary key field name for a specified Baserow table
+def get_primary_key_field(baserow_client, table_id):
+    """
+    Retrieve the primary key field name for a specified Baserow table.
+
+    :param baserow_client: The Baserow client instance, authenticated and ready to interact with Baserow API.
+    :type baserow_client: Baserow
+    :param table_id: The unique identifier of the Baserow table.
+    :type table_id: int
+    :return: The primary key field name for the table.
+    :rtype: str
+    :raises Exception: If there is an error retrieving the primary key field.
+    """
+
+    try:
+        table = baserow_client.get_table(table_id)
+        primary_key_field = table.primary_field
+        logger.info(
+            f"Retrieved primary key field: '{primary_key_field}' for table ID {table_id}."
+        )
+        return primary_key_field
+
+    except Exception as error:
+        logger.exception(
+            f"Unexpected error retrieving primary key field for table {table_id}: {error}"
+        )
+        raise
+
+
 # Filter rows from a Baserow table based on a provided filter object
 def filter_baserow_table(baserow_client: Baserow, table_id: int, baserow_filters: list):
     """
@@ -158,6 +209,7 @@ def filter_baserow_table(baserow_client: Baserow, table_id: int, baserow_filters
     except Exception as e:
         logging.error("An unexpected error occurred: %s", e)
         raise
+
 
 # Link related records between source and target tables
 def link_related_records(baserow_client: Baserow, record_linker_configs: list):
@@ -272,14 +324,14 @@ def link_related_records(baserow_client: Baserow, record_linker_configs: list):
 
 if __name__ == "__main__":
     try:
-        # Load record linkers configuration
-        record_linkers = load_record_linkers()
-
         # Load environment variables
-        baserow_url, baserow_api_token = load_env_variables()
+        baserow_url, baserow_api_token, config_table_id = load_env_variables()
 
         # Create a Baserow client
         baserow = Baserow(baserow_url, baserow_api_token)
+
+        # Load record linkers configuration
+        record_linkers = get_record_link_configs(baserow, config_table_id)
 
         # Link related records
         link_related_records(baserow, record_linkers)

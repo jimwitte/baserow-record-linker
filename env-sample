@@ -1,2 +1,3 @@
 BASEROW_URL=https://baserow.io
 BASEROW_API_TOKEN=xxxxxxxxxxxx
+CONFIG_TABLE_ID=xxxx
