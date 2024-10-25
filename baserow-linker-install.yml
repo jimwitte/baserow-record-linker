@@ -1,0 +1,29 @@
+---
+- name: Setup Baserow Record Linker Docker Container
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Ensure the baserow-linker directory exists
+      ansible.builtin.file:
+        path: /root/baserow-linker
+        state: directory
+        mode: '0755'
+
+    - name: Copy docker-compose.yml to the baserow-linker directory
+      ansible.builtin.copy:
+        src: docker-compose.yml
+        dest: /root/baserow-linker/docker-compose.yml
+        mode: '0644'
+
+    - name: Copy env-sample to .env in the baserow-linker directory
+      ansible.builtin.copy:
+        src: env-sample
+        dest: /root/baserow-linker/.env
+        mode: '0644'
+
+    - name: Notify user to edit .env file
+      ansible.builtin.debug:
+        msg: |
+          The environment file .env has been created in /root/baserow-linker.
+          Please review and edit this file with your configurations before starting the Docker container.
